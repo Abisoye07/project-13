@@ -1,0 +1,51 @@
+ pipeline {
+
+   agent any
+
+   environment {
+    ANSIBLE_CONFIG='${WORKSPACE}/deploy/ansible.cfg'
+   }
+
+   stages {
+
+    stage('Initial Clean Up') {
+      steps {
+        dir('${WORKSPACE}') {
+         deleteDir()
+        }
+
+      }
+    }
+
+
+    stage('Checkout SCM') {
+      steps {
+        git branch: 'feature/jenkinspipeline-stages', url: 'https://github.com/Abisoye07/ansible-config-mgt.git'
+      }
+    }
+
+    stage('Setting Roles Path in the Ansible.cfg File') {
+
+      steps {
+        sh 'echo ${WORKSPACE}'
+        sh 'sed -i "3 a roles_path=${WORKSPACE}/roles" ${WORKSPACE}/deploy/ansible.cfg'
+      }
+    }
+
+    stage('Run Ansible Playbook') {
+
+      steps {
+        ansiblePlaybook become: true, colorized: true, credentialsId: 'key-pair', disableHostKeyChecking: true, installation: 'ansible', inventory: 'inventory/dev', playbook: 'playbooks/site.yml' 
+
+      }
+    }
+
+    stage('Clean Up') {
+      steps {
+         cleanWs(cleanWhenAborted: true, cleanWhenNotBuilt: true, cleanWhenUnstable: true, cleanWhenFailure: true)
+      }
+
+    }
+     
+   }
+}
